@@ -1,1 +1,1 @@
-![logo](https://raw.githubusercontent.com/MoritzFago/invisiblePGP/master/invisiblePGPb.png)
+![logo](https://raw.githubusercontent.com/MoritzFago/invisiblePGP/master/invisiblePGP.png)
