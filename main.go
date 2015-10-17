@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/viper"
 	//	"os"
 	//	"path/filepath"
+	"github.com/moritzfago/invisiblePGP/imapd"
 )
 
 func main() {
@@ -19,5 +20,8 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
+
+	var proxy = imapd.NewIMAPProxy(viper.GetInt("imap.localport"), viper.GetString("imapserver.server"), viper.GetInt("imapserver.port"))
+	proxy.Start()
 
 }
