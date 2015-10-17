@@ -122,13 +122,45 @@ class IMAPClient(LineReceiver):
         print "Client INIT"
         imap.imapclient = self
         self.relay = imap
+        self.state = "prePGP"
+        self.buffer = []
+        self.beginPGP = re.compile("BEGIN PGP MESSAGE")
+        self.endPGP = re.compile("END PGP MESSAGE")
 
-
+    def sendLine(self, line):
+        print "Relay -> Server",line
+        LineReceiver.sendLine(self,line)
 
     def lineReceived(self, line):
-        print "Server->Relay", line
 
-        self.relay.sendLine(line)
+        if self.beginPGP.search(line.upper()):
+            self.state="PGP"
+            print "PGPing"
+        elif self.endPGP.search(line.upper()):
+            self.buffer.append(line)
+            import pdb
+            #pdb.set_trace()
+            gpg = gnupg.GPG()
+            decrypted= gpg.decrypt("\r\n".join(self.buffer))
+            for entry in str(decrypted).splitlines():
+                print "Server->Relayd", entry
+                self.relay.sendLine(entry)
+            line =""
+            self.state="prePGP"
+
+
+
+        if self.state=="prePGP":
+            print "Server->Relayd", line
+            self.relay.sendLine(line)
+        elif self.state=="PGP":
+            self.buffer.append(line)
+
+
+            # FIXME: Laenge im Header ist falsch
+
+
+
 
 class IMAPClientFactory(ClientFactory):
     def __init__(self, imap):
@@ -151,9 +183,11 @@ class IMAP(LineReceiver):
         self.em = ""
         self.sen = ""
         self.imapclient = None
-        self.state = "preFetch"
+        self.state = "prePGP"
         self.buffer = []
-        self.mregex = re.compile("^([A-Z0-9]+) (UID )?FETCH")
+        self.beginPGP = re.compile("BEGIN PGP MESSAGE")
+        self.endPGP = re.compile("END PGP MESSAGE")
+
         self.fTag = ""
 
     def connectionMade(self):
@@ -165,28 +199,10 @@ class IMAP(LineReceiver):
         print "Server", reason
 
     def lineReceived(self, line):
-        print "Client->Relay:", self.state, line
+        self.imapclient.sendLine(line)
 
-        if self.state=="preFetch":
-            self.imapclient.sendLine(line)
-        elif self.state=="Fetch":
-            self.buffer.append(line)
-        elif self.state=="postFetch":
-            self.imapclient.sendLine(line)
-
-            # FIXME: Laenge im Header ist falsch
-
-        if self.mregex.match(line.upper()):
-            self.state="Fetch"
-            print "Fetching"
-            m = self.mregex.match(line.upper())
-            self.fTag = m.group(1)
-            print self.fTag
-        elif line.upper().startswith(self.fTag + " OK"):
-            self.state="postFetch"
-            print self.buffer
 '''
-            # KeyID = 8F586B2A
+            # KeyID = 7CCA6F8A
             #insert your pgp here
             gpg = gnupg.GPG()
             entry = self.buffer.pop(0)
@@ -218,6 +234,6 @@ certData = open(Configuration['certFile']).read()
 
 certificate = ssl.PrivateCertificate.loadPEM(certData)
 reactor.listenSSL(Configuration["SMTP.localport"], SMTPFactory(),certificate.options())
-#reactor.listenSSL(Configuration["IMAP.localport"], IMAPFactory(),certificate.options())
+reactor.listenSSL(Configuration["IMAP.localport"], IMAPFactory(),certificate.options())
 #reactor.listenTCP(1587, SMTPFactory())
 reactor.run()
