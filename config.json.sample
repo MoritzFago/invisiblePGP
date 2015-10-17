@@ -1,0 +1,14 @@
+{
+  "IMAP": {
+    "host": "$IMAPSERVER",
+    "localport": $LOCALIMAPPORT,
+    "port": "$IMAPSERVERPORT"
+  },
+  "SMTP": {
+    "host": "$SMTPSERVER",
+    "localport": $LOCALSMTPORT,
+    "port": $SMTPSERVERPORT
+  },
+  "certFile": "$PRIVATEkEYuNDzERTIFIKATiNeINEMpEMfILE",
+  "privKeyID": "$PRIVATEKEYID"
+}
