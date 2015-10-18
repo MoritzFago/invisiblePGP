@@ -4,6 +4,7 @@ from twisted.internet import reactor
 from twisted.internet import ssl
 import gnupg
 import re
+#import email
 from configloader import Configuration
 
 Configuration.default = {
@@ -50,7 +51,7 @@ class SMTPClientFactory(ClientFactory):
         print 'Client: Lost connection.  Reason:', reason
 
     def clientConnectionFailed(self, connector, reason):
-        print 'Client: Connection failed. Reason:', reason
+        print 'Cflient: Connection failed. Reason:', reason
 
 class SMTP(LineReceiver):
     #redet mit dem iPhone
@@ -142,10 +143,13 @@ class IMAPClient(LineReceiver):
             #pdb.set_trace()
             gpg = gnupg.GPG()
             decrypted= gpg.decrypt("\r\n".join(self.buffer))
+        #    Par = email.parser.Parser()
+        #    emailmsg= Par.parsestr(decrypted)
             for entry in str(decrypted).splitlines():
                 print "Server->Relayd", entry
                 self.relay.sendLine(entry)
             line =""
+            #self.buffer=[]
             self.state="prePGP"
 
 
@@ -233,7 +237,8 @@ class IMAPFactory(Factory):
 certData = open(Configuration['certFile']).read()
 
 certificate = ssl.PrivateCertificate.loadPEM(certData)
-reactor.listenSSL(Configuration["SMTP.localport"], SMTPFactory(),certificate.options())
+#reactor.listenSSL(Configuration["SMTP.localport"], SMTPFactory(),certificate.options())
 reactor.listenSSL(Configuration["IMAP.localport"], IMAPFactory(),certificate.options())
 #reactor.listenTCP(1587, SMTPFactory())
 reactor.run()
+# FIXME SSLv3?
